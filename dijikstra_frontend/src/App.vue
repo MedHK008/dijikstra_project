@@ -104,7 +104,8 @@ export default {
       console.log(this.end);
 
       try {
-        const response = await axios.post("http://localhost:8080/api/maze/astar", {
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+        const response = await axios.post(`${API_BASE_URL}/api/maze/astar`, {
           maze: this.grid,
           start: this.start,
           end: this.end,
