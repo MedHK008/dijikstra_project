@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./dijikstra_backend
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"
+    networks:
+      - maze-net
+
+  frontend:
+    build: ./dijikstra_frontend
+    ports:
+      - "3000:80"
+    networks:
+      - maze-net
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+
+networks:
+  maze-net:
+    driver: bridge
+    
