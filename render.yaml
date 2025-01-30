@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: backend
+    runtime: docker
+    dockerfilePath: dijikstra_backend/Dockerfile
+    port: 8080
+
+  - type: web
+    name: frontend
+    runtime: docker
+    dockerfilePath: dijikstra_frontend/Dockerfile
+    port: 80
+    env: production
