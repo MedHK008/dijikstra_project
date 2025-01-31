@@ -1,37 +1,48 @@
 <template>
   <div class="container">
-    <h1 class="title">Maze Simulator</h1>
-    <div class="grid">
-      <div
-        v-for="(row, i) in grid"
-        :key="i"
-        class="row"
-      >
-        <div
-          v-for="(cell, j) in row"
-          :key="j"
-          :class="getClass(i, j)"
-          @click="toggleCell(i, j)"
-        ></div>
+    <h1 class="title">Maze Pathfinder</h1>
+    <input type="number" v-model.number="matrixSize" min="5" max="30" :disabled="processing" />
+    <div class="main-content">
+      <div class="controls">
+        <button class="btn primary" @click="initializeMaze" :disabled="processing">
+          Initialize Maze
+        </button>
+        <button class="btn primary" @click="generateRandomMaze" :disabled="processing">
+          Random Maze
+        </button>
+        <button class="btn secondary" @click="restartMaze" :disabled="processing">
+          Restart
+        </button>
+      </div>
+      <div class="grid">
+        <div v-for="(row, i) in grid" :key="i" class="row">
+          <div v-for="(cell, j) in row" :key="j" :class="getClass(i, j)" @click="toggleCell(i, j)"></div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" @click="findPath" :disabled="processing || !start || !end">
+          {{ processing ? "Finding Path..." : "Dijkstra" }}
+        </button>
+        <button class="btn primary" @click="findPathAStar" :disabled="processing || !start || !end">
+          {{ processing ? "Finding Path..." : "A* Algorithm" }}
+        </button>
+        <button class="btn primary" @click="findbfs" :disabled="processing || !start || !end">
+          {{ processing ? "Finding Path..." : "BFS" }}
+        </button>
       </div>
     </div>
-    <div class="controls">
-      <input type="number" v-model.number="matrixSize" min="5" max="30" :disabled="processing" />
-      <button class="btn primary" @click="initializeMaze" :disabled="processing">
-        Initialize Maze
-      </button>
-      <button class="btn primary" @click="findPath" :disabled="processing || !start || !end">
-        {{ processing ? "Finding Path..." : "Dijikstraaa" }}
-      </button>
-      <button class="btn primary" @click="generateRandomMaze" :disabled="processing">
-        Generate Random Maze
-      </button>
-      <button class="btn primary" @click="findPathAStar" :disabled="processing || !start || !end">
-        {{ processing ? "Finding Path..." : "A* Algorithm" }}
-      </button>
-      <button class="btn secondary" @click="restartMaze" :disabled="processing">
-        restart
-      </button>
+    <div class="footer">
+      <button @click="showPopup = true" class="btn secondary">How it works</button>
+      <div v-if="showPopup" class="popup">
+        <div class="popup-content">
+          <h2>How it works</h2>
+          <p>1. Initialize the grid with a number of your choice (default is 10).</p>
+          <p>2. Click "Random Maze" to generate a random maze, or manually set the blockade after choosing the start and end nodes by clicking on the grid.</p>
+          <p>3. The first click on the grid sets the start node, the second click sets the end node.</p>
+          <p>4. Any subsequent clicks on the grid will toggle blockades (walls).</p>
+          <button @click="showPopup = false" class="btn secondary">Close</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -123,6 +134,30 @@ export default {
         this.processing = false;
       }
     },
+    async findbfs() {
+      if (this.processing) return; // Prevent re-triggering
+      this.processing = true;
+
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+        const response = await axios.post(`${API_BASE_URL}/api/maze/bfs`, {
+          maze: this.grid,
+          start: this.start,
+          end: this.end,
+        });
+
+        const { visitedNodes, path } = response.data;
+
+        // Animate visited nodes
+        this.animateVisitedNodes(visitedNodes, () => {
+          // After all nodes are visited, animate the shortest path
+          this.animatePath(path);
+        });
+      } catch (error) {
+        console.error("Error finding path:", error);
+        this.processing = false;
+      }
+    },
     restartMaze() {
       this.grid = [];
       this.start = null;
@@ -176,87 +211,198 @@ export default {
 </script>
 
 <style scoped>
-input[type="number"] {
-  width: 60px;
-  padding: 5px;
-  margin-right: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+
+template {
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+.container {
+  font-family: 'Poppins', sans-serif;
   text-align: center;
+  margin: 20px auto;
+  padding: 0 10px;
+  overflow:auto;
 }
 
-.container {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  margin: 20px auto;
-  max-width: 600px;
-}
 .title {
   font-size: 2rem;
+  font-weight: bold;
+  color: #2c2a2a;
   margin-bottom: 20px;
+  background-color: #dee2e6;
+  padding: 10px;
+  border-radius: 10px;
 }
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+input[type="number"] {
+  width: 80px;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 2px solid #000000;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.btn {
+  width: 200px;
+  padding: 12px;
+  margin: 5px 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn.primary {
+  background: #000000;
+  color: white;
+}
+
+.btn.primary:hover {
+  color: black;
+  background: #f7f7f7;
+}
+
+.btn.secondary {
+  color: rgb(255, 255, 255);
+  background: #000000;
+}
+
+.btn.secondary:hover {
+  color: black;
+  background: #ffffff;
+}
+
+.btn:disabled {
+  background: #d6d6d6;
+  cursor: not-allowed;
+}
+
 .grid {
   display: grid;
-  gap: 2px;
+  gap: 3px;
   justify-content: center;
-  margin: 20px auto;
-  max-width: 400px;
+  padding: 20px;
+  background: #e9ecef;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
+
+.footer {
+  margin-top: 20px;
+  font-size: 1rem;
+  color: #2c2a2a;
+}
+
 .row {
   display: flex;
 }
+
 .row div {
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
+  width: 35px;
+  height: 35px;
+  border-radius: 6px;
   transition: background-color 0.3s ease;
 }
+
 .empty {
-  background-color: #f0f0f0;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
 }
+
 .wall {
-  background-color: #333;
+  background: #343a40;
 }
+
 .start {
-  background-color: #28a745;
+  background: #28a745;
 }
+
 .end {
-  background-color: #dc3545;
+  background: #dc3545;
 }
+
 .path {
-  background-color: #ffc107;
+  background: #ffc107;
 }
+
 .visited {
-  background-color: #17a2b8;
+  background: #17a2b8;
 }
-.controls {
-  margin-top: 20px;
+
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
-.btn {
-  padding: 10px 20px;
-  margin: 5px;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+
+.popup-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: left;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
 }
-.btn.primary {
-  background-color: #007bff;
-  color: white;
+
+.popup-content h2 {
+  margin-top: 0;
 }
-.btn.primary:hover {
-  background-color: #0056b3;
+
+.popup-content p {
+  margin: 10px 0;
 }
-.btn.secondary {
-  background-color: #6c757d;
-  color: white;
+
+@media (min-width: 768px) {
+  .main-content {
+    flex-direction: row;
+  }
 }
-.btn.secondary:hover {
-  background-color: #5a6268;
+
+@media (max-width: 767px) {
+  .row div {
+    width: 25px;
+    height: 25px;
+  }
 }
-.btn:disabled {
-  background-color: #d6d6d6;
-  cursor: not-allowed;
+
+@media (max-width: 480px) {
+  .row div {
+    width: 20px;
+    height: 20px;
+  }
 }
 </style>
